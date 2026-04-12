@@ -3,7 +3,7 @@
     {
       "id": "agent",
       "args": {
-        "image": "leon272/aegis-agent:latest",
+        "image": "leon272/aegis-agent:v2",
         "expose": 3000,
         "env": {
           "OPENAI_API_KEY": "nosana",
