@@ -1,8 +1,6 @@
-# syntax=docker/dockerfile:1
+# === STAGE 1: Build ===
+FROM node:23-slim AS builder
 
-FROM node:23-slim AS base
-
-# Install system dependencies needed for native modules (e.g. better-sqlite3)
 RUN apt-get update && apt-get install -y \
   python3 \
   make \
@@ -10,23 +8,41 @@ RUN apt-get update && apt-get install -y \
   git \
   && rm -rf /var/lib/apt/lists/*
 
-# Disable telemetry
 ENV ELIZAOS_TELEMETRY_DISABLED=true
 ENV DO_NOT_TRACK=1
 
 WORKDIR /app
 
-# Install pnpm
 RUN npm install -g pnpm
 
-# Copy package manifest and install dependencies
-COPY package.json ./
-RUN pnpm install
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --no-frozen-lockfile
 
-# Copy all source files
 COPY . .
+RUN npx tsc
 
-# Create data directory for SQLite
+# Remove dev dependencies and build tools to slim down
+RUN pnpm prune --prod
+
+# === STAGE 2: Runtime (slim) ===
+FROM node:23-slim
+
+RUN apt-get update && apt-get install -y \
+  python3 \
+  make \
+  g++ \
+  && rm -rf /var/lib/apt/lists/* \
+  && npm install -g pnpm bun
+
+WORKDIR /app
+
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/characters ./characters
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/src ./src
+
 RUN mkdir -p /app/data
 
 EXPOSE 3000

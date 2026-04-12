@@ -1,0 +1,8 @@
+# Quick patch: adds bun + fixed character file
+FROM leon272/aegis-agent:latest@sha256:9090d4597b2364480cf628c6fb1f56fb6c3072e68b8e96c8e9beaa067491af2a
+
+RUN npm install -g bun
+
+COPY characters/agent.character.json /app/characters/agent.character.json
+
+CMD ["pnpm", "start"]
